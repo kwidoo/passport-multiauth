@@ -1,0 +1,54 @@
+{
+    "name": "kwidoo/passport-multi-auth",
+    "description": "Extends Laravel Passport Password Grant with OTP",
+    "keywords": [
+        "kwidoo",
+        "passport-multi-auth"
+    ],
+    "homepage": "https://github.com/kwidoo/passport-multi-auth",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Oleg Pashkovsky",
+            "email": "oleg@pashkovsky.me",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "illuminate/support": "^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.0",
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kwidoo\\PassportMultiAuth\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Kwidoo\\PassportMultiAuth\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kwidoo\\PassportMultiAuth\\PassportMultiAuthServiceProvider"
+            ],
+            "aliases": {
+                "PassportMultiAuth": "Kwidoo\\PassportMultiAuth\\PassportMultiAuthFacade"
+            }
+        }
+    }
+}
