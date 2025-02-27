@@ -171,7 +171,3 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
 ## License
 
 [MIT](LICENSE)
-
----
-
-**That’s it!** With the updated README and example tests, you should have a clearer path to install, configure, and verify functionality for the Laravel Passport Multi-Auth package. If you need any additional help, let us know. Happy coding!
