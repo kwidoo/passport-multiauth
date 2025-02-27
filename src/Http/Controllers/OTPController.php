@@ -7,7 +7,7 @@ use Exception;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 
-class OTPController extends Controller
+class OTPController
 {
     /**
      * @param OTPServiceInterface[] $otpGenerators
@@ -21,8 +21,12 @@ class OTPController extends Controller
             'username' => 'required|string',
         ]);
 
-        $generator = $this->otpGenerators[$request->method]
-            ?? throw new InvalidArgumentException("Unsupported OTP method");
+        if (!array_key_exists($request->method, $this->otpGenerators)) {
+            return response()->json(['message' => 'Unsupported OTP method'], 422);
+        }
+
+        $generator = $this->otpGenerators[$request->method];
+
         try {
             $generator->create($request->username);
 

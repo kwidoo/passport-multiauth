@@ -16,21 +16,22 @@
         }
     ],
     "require": {
-        "php": "^7.4|^8.0",
+        "php": "^8.0",
         "laravel/passport": "^12.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^6.0",
-        "phpunit/phpunit": "^9.0"
+        "orchestra/testbench": "^10.0",
+        "phpunit/phpunit": "^11.0.1",
+        "twilio/sdk": "^8.3"
     },
     "autoload": {
         "psr-4": {
-            "Kwidoo\\MultiAuth\\": "src"
+            "Kwidoo\\MultiAuth\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Kwidoo\\MultiAuth\\Tests\\": "tests"
+            "Kwidoo\\MultiAuth\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -46,5 +47,8 @@
                 "Kwidoo\\MultiAuth\\MultiAuthServiceProvider"
             ]
         }
+    },
+    "suggest": {
+        "twilio/sdk": "Required for Twilio SMS OTP (^6.0)"
     }
 }

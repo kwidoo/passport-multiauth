@@ -44,7 +44,7 @@ class MultiAuthServiceProvider extends ServiceProvider
 
     protected function loadApplicationComponents(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Http/routes.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'passport-multiauth');
     }
