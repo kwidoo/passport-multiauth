@@ -50,16 +50,17 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
    TWILIO_AUTH_TOKEN=your_twilio_auth_token
    TWILIO_VERIFY_SID=your_twilio_verify_service_id
    ```
-
+   Note, you should have a Twilio account and will need to create Verification SID there. This code doesn't use regular SMS by default, but Twilio Verify API.
+   For more details, see the [Twilio Verify API](https://www.twilio.com/docs/verify/api).
 ---
 
 ## Usage
 
 1. **Request an OTP**
-   This package includes `OTPController` and a route file (`routes.php`) with a `POST /otp/create` endpoint by default.
+   This package includes `OTPController` and a route file (`routes.php`) with a `POST /oauth/otp` endpoint by default. Package will respect changes in `config/passport.php` file.
    Example request:
    ```json
-   POST /otp/create
+   POST /oauth/otp
    {
      "method": "twilio",
      "username": "+1234567890"
@@ -67,7 +68,7 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
    ```
    or:
    ```json
-   POST /otp/create
+   POST /oauth/otp
    {
      "method": "email",
      "username": "user@example.com"
@@ -112,12 +113,17 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
    - **`strategy`**: Usually `OTPStrategy`, which handles how the credentials are validated using the `class`.
    - **`resolver`**: Defines how to find your user record after OTP validation (e.g., by email, phone).
 
+4. **OTP model** (`Kwidoo\MultiAuth\Models\OTP`)
+   - This model is used on with Email strategy to store OTPs. Twilio doesn't require to store OTPs localy
+   - You can customize one time password model by changing the `otp.model` key in the configuration file.
+
+   - Default one time password is 6 digits long and expires in 5 minutes. You can change these values in the configuration file.
 ---
 
 ## Example Flow
 
 1. **User** enters their phone number on your app.
-2. **Your app** calls `POST /otp/create` with `{ "method":"twilio", "username":"+1234567890" }`.
+2. **Your app** calls `POST /oauth/otp` with `{ "method":"twilio", "username":"+1234567890" }`.
 3. **TwilioService** (in the background) sends an SMS code via Twilio.
 4. **User** receives the code and enters it in your app.
 5. **Your app** calls `POST /oauth/token` with:
