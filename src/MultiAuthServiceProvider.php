@@ -8,7 +8,11 @@ use League\OAuth2\Server\AuthorizationServer;
 use Kwidoo\MultiAuth\Grants\MultiAuthGrant;
 use Kwidoo\MultiAuth\Http\Controllers\OTPController;
 use Kwidoo\MultiAuth\Services\TwilioService;
+use Laravel\Passport\Bridge\UserRepository;
+use Laravel\Passport\Bridge\RefreshTokenRepository;
 use Twilio\Rest\Client;
+use League\OAuth2\Server\Repositories\RefreshTokenRepositoryInterface;
+use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 
 class MultiAuthServiceProvider extends ServiceProvider
 {
@@ -51,6 +55,8 @@ class MultiAuthServiceProvider extends ServiceProvider
 
     protected function registerAuthComponents(): void
     {
+        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(RefreshTokenRepositoryInterface::class, RefreshTokenRepository::class);
         $this->registerAuthMethodHandler();
         $this->registerAuthorizationGrant();
         $this->bindOTPController();
@@ -78,11 +84,14 @@ class MultiAuthServiceProvider extends ServiceProvider
 
     protected function registerAuthorizationGrant(): void
     {
+
         $this->app->resolving(AuthorizationServer::class, function (AuthorizationServer $server, $app) {
             $resolvers = $this->resolveStrategyImplementations('resolver');
 
             $server->enableGrantType(
-                $app->make(MultiAuthGrant::class, ['resolvers' => $resolvers]),
+                $app->make(MultiAuthGrant::class, [
+                    'resolvers' => $resolvers
+                ]),
                 Passport::tokensExpireIn()
             );
         });

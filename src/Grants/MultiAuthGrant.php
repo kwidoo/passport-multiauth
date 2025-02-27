@@ -9,6 +9,8 @@ use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use League\OAuth2\Server\Grant\PasswordGrant;
 use Psr\Http\Message\ServerRequestInterface;
+use League\OAuth2\Server\Repositories\RefreshTokenRepositoryInterface;
+use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 use RuntimeException;
 
 class MultiAuthGrant extends PasswordGrant
@@ -17,7 +19,14 @@ class MultiAuthGrant extends PasswordGrant
      * @param AuthMethodHandler $authHandler
      * @param array<string, UserResolver> $resolvers
      */
-    public function __construct(protected AuthMethodHandler $authHandler, protected array $resolvers) {}
+    public function __construct(
+        UserRepositoryInterface $userRepository,
+        RefreshTokenRepositoryInterface $refreshTokenRepository,
+        protected AuthMethodHandler $authHandler,
+        protected array $resolvers
+    ) {
+        parent::__construct($userRepository, $refreshTokenRepository);
+    }
 
     public function registerResolver(string $method, UserResolver $resolver)
     {
