@@ -1,214 +1,171 @@
 # Laravel Passport Multi-Auth
 
-A Laravel package that extends **Laravel Passport**'s password grant to support multiple authentication methods (SMS/Email/Telegram OTP, etc.). You can define custom OTP strategies and corresponding user resolvers, enabling flexible authentication flows in your Laravel application.
+A Laravel package that **extends Laravel Passport’s** password grant to support multiple authentication methods (e.g., SMS/Email OTP). You can define custom OTP strategies and user resolvers in a single config file, making your OTP flows more flexible and secure.
 
----
+## Requirements
 
-## Features
+- **Laravel Passport** (already required by this package).
+- **PHP** ^8.0
+- **(Optional) Twilio SDK** if you plan to use Twilio for SMS OTP:
+  ```bash
+  composer require twilio/sdk
+  ```
+  Note: For twilio in production you should install Twilio SDK.
 
-- **OTP Authentication**: Supports Twilio (SMS), Email, Telegram—or any custom service you define.
-- **Config-Driven Setup**: Easily add or remove strategies in a single `passport-multiauth` config file.
-- **Custom User Resolvers**: Associate each strategy with its own resolver (e.g., phone lookup, email lookup).
-- **Seamless Integration with Laravel Passport**: Adds a custom grant type that you can use alongside the default password grant.
 
 ---
 
 ## Installation
 
-1. **Install via Composer**:
-
+1. **Require via Composer**:
    ```bash
-   composer require kwidoo/multi-auth
+   composer require kwidoo/passport-multiauth
    ```
+   This automatically installs the package and its dependencies (except for the optional Twilio SDK mentioned above).
 
-2. **Publish the Configuration** (optional, but recommended to customize):
-
+2. **Publish Config (optional)**:
    ```bash
    php artisan vendor:publish --provider="Kwidoo\MultiAuth\MultiAuthServiceProvider" --tag=config
    ```
+   This copies `passport-multiauth.php` into your `config` folder, allowing you to adjust OTP strategies, timeouts, and more.
 
-   This will publish a config file to `config/passport-multiauth.php`.
+3. **Publish Migrations and Views** (if desired):
+   ```bash
+   php artisan vendor:publish --provider="Kwidoo\MultiAuth\MultiAuthServiceProvider" --tag=migrations
+   php artisan vendor:publish --provider="Kwidoo\MultiAuth\MultiAuthServiceProvider" --tag=views
+   ```
+   - Migrations will create (by default) an `otps` table to store OTP codes and status.
+   - Views include basic Blade templates for OTP success/error states.
 
-3. **Configure Your OAuth Server**:
+4. **Run Migrations**:
+   ```bash
+   php artisan migrate
+   ```
+   This will create any necessary tables (e.g., `otps` table for storing email OTPs).
 
-   The package service provider automatically binds the custom `MultiAuthGrant` to your Laravel Passport `AuthorizationServer`. Just ensure you have set up [Laravel Passport](https://laravel.com/docs/passport) properly.
-
----
-
-## Configuration
-
-After publishing the config, you’ll have a file at `config/passport-multiauth.php`:
-
-```php
-return [
-    'strategies' => [
-        'twilio' => [
-            'class'     => \Kwidoo\MultiAuth\Services\TwilioService::class,
-            'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-            'resolver'  => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
-        ],
-        'email' => [
-            'class'     => \Kwidoo\MultiAuth\Services\EmailService::class,
-            'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-            'resolver'  => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
-        ],
-        'telegram' => [
-            'class'     => \Kwidoo\MultiAuth\Services\TelegramService::class,
-            'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-            'resolver'  => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
-        ],
-    ],
-];
-```
-
-### How the Config Works
-
-- **`class`**: The service class that implements OTP generation/validation (e.g., TwilioService).
-- **`strategy`**: The strategy wrapper (e.g., `OTPStrategy`) that implements `AuthStrategy`.
-- **`resolver`**: Class that implements `Kwidoo\MultiAuth\Contracts\UserResolver`. Determines how to load the user after OTP validation.
-
-You can add or remove strategies as needed—each entry must provide a `class`, a `strategy`, and a `resolver`.
+5. **Configure Twilio (Optional)**:
+   If using Twilio, define these in your `.env` or in a `config/twilio.php`:
+   ```env
+   TWILIO_SID=your_twilio_sid
+   TWILIO_AUTH_TOKEN=your_twilio_auth_token
+   TWILIO_VERIFY_SID=your_twilio_verify_service_id
+   ```
 
 ---
 
 ## Usage
 
-### 1. Request an OTP
+1. **Request an OTP**
+   This package includes `OTPController` and a route file (`routes.php`) with a `POST /otp/create` endpoint by default.
+   Example request:
+   ```json
+   POST /otp/create
+   {
+     "method": "twilio",
+     "username": "+1234567890"
+   }
+   ```
+   or:
+   ```json
+   POST /otp/create
+   {
+     "method": "email",
+     "username": "user@example.com"
+   }
+   ```
+   This triggers the corresponding service (e.g., `TwilioService` or `EmailService`) to generate/send OTP.
 
-This package includes an example `OTPController` to issue the OTP:
+2. **Obtain Access Token**
+   After receiving the OTP, call the standard Passport token endpoint (often `POST /oauth/token`) with parameters:
+   ```json
+   {
+     "grant_type": "password",
+     "client_id": "your-passport-client-id",
+     "client_secret": "your-passport-client-secret",
+     "username": "+1234567890",
+     "password": "123456",  // The OTP from Twilio
+     "method": "twilio"
+   }
+   ```
+   - If `method` = `"twilio"`, the package will validate the OTP via Twilio.
+   - If `method` = `"email"`, it will use the email-based OTP.
+   - If `method` is `"password"` or missing, it defaults to **Laravel Passport’s** normal password-based grant.
 
-```php
-POST /api/otp
-
-{
-    "method": "twilio",
-    "username": "+1234567890"
-}
-```
-
-- `method`: Must match one of the keys in `passport-multiauth.strategies` (e.g., `twilio`).
-- `username`: The user identifier (phone, email, etc.).
-
-### 2. Obtain Access Token via OAuth
-
-You can then request a token from your Passport OAuth endpoint, typically `POST /oauth/token`, with:
-
-```json
-{
-    "grant_type": "password",
-    "client_id": "<client-id>",
-    "client_secret": "<client-secret>",
-    "username": "+1234567890",
-    "password": "1234",
-    "method": "twilio"
-}
-```
-
-- `method`: Indicates which strategy to use. If omitted or set to `password`, it’ll fallback to the standard Laravel Passport username/password flow.
-
-When `method` is set to a configured method (e.g. `twilio`), the package will:
-1. Validate the OTP using the `TwilioService::validate()` method.
-2. Resolve the user via `GeneralUserResolver`.
-3. Issue the Passport token if validation and resolution succeed.
+3. **Configuration File** (`config/passport-multiauth.php`)
+   You can customize each strategy like so:
+   ```php
+   'strategies' => [
+       'twilio' => [
+           'class'    => \Kwidoo\MultiAuth\Services\TwilioService::class,
+           'strategy' => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
+           'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
+       ],
+       'email' => [
+           'class'    => \Kwidoo\MultiAuth\Services\EmailService::class,
+           'strategy' => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
+           'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
+       ],
+       // ... or custom strategies
+   ],
+   ```
+   - **`class`**: The service that sends/validates the OTP (Twilio, Email, etc.).
+   - **`strategy`**: Usually `OTPStrategy`, which handles how the credentials are validated using the `class`.
+   - **`resolver`**: Defines how to find your user record after OTP validation (e.g., by email, phone).
 
 ---
 
 ## Example Flow
 
-1. **User enters phone number** in the app.
-2. **App calls** `POST /api/otp` with `{"method":"twilio","username":"+1234567890"}`.
-3. **`TwilioService::create()`** sends an SMS with a code.
-4. **User receives code** on their phone and enters it in the app.
-5. **App calls** `POST /oauth/token` with:
+1. **User** enters their phone number on your app.
+2. **Your app** calls `POST /otp/create` with `{ "method":"twilio", "username":"+1234567890" }`.
+3. **TwilioService** (in the background) sends an SMS code via Twilio.
+4. **User** receives the code and enters it in your app.
+5. **Your app** calls `POST /oauth/token` with:
    ```json
    {
-       "grant_type": "password",
-       "client_id": "<client-id>",
-       "client_secret": "<client-secret>",
-       "username": "+1234567890",
-       "password": "the-otp-code",
-       "method": "twilio"
+     "grant_type": "password",
+     "client_id": "...",
+     "client_secret": "...",
+     "username": "+1234567890",
+     "password": "the-otp-code",
+     "method": "twilio"
    }
    ```
-6. **MultiAuthGrant** validates the OTP and fetches the user from the DB (via `GeneralUserResolver`).
-7. **Passport** issues access token.
-
----
-
-## Advanced Usage
-
-### Custom Strategies
-
-1. Create a class implementing `Kwidoo\MultiAuth\Contracts\OTPValidator` (and `OTPGenerator` if needed).
-2. Create a class implementing `Kwidoo\MultiAuth\Contracts\AuthStrategy` to wrap validation logic (often you can reuse `OTPStrategy`).
-3. Create (or reuse) a `Kwidoo\MultiAuth\Contracts\UserResolver` for user lookup logic.
-4. Register them in your `passport-multiauth.php`:
-
-```php
-'my_custom_strategy' => [
-    'class'     => \App\Services\MyCustomValidator::class,
-    'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-    'resolver'  => \App\Resolvers\MyCustomResolver::class,
-],
-```
-
-### Overriding the Default User Resolver
-
-- If you want to resolve by phone number, or a different column, simply create a custom resolver:
-
-```php
-namespace App\Resolvers;
-
-use Kwidoo\MultiAuth\Contracts\UserResolver;
-use League\OAuth2\Server\Entities\ClientEntityInterface;
-use Laravel\Passport\Bridge\User;
-
-class PhoneUserResolver implements UserResolver
-{
-    public function resolve(string $username, ClientEntityInterface $clientEntity): ?User
-    {
-        $provider = $clientEntity->provider ?? config('auth.guards.api.provider');
-        $model = config("auth.providers.$provider.model");
-
-        $user = (new $model)->where('phone', $username)->first();
-
-        return $user ? new User($user->getAuthIdentifier()) : null;
-    }
-}
-```
-
-Then in your config:
-
-```php
-'strategies' => [
-    'twilio' => [
-        'class'     => \Kwidoo\MultiAuth\Services\TwilioService::class,
-        'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-        'resolver'  => \App\Resolvers\PhoneUserResolver::class,
-    ],
-    // ...
-],
-```
+6. **MultiAuthGrant** checks that the OTP is correct, then resolves the user from the database, and **issues a Passport token**.
 
 ---
 
 ## Testing
 
-1. **Unit Tests**: Mock your OTP services (Twilio, Email, etc.) to test the package’s logic without hitting real endpoints.
-2. **Integration Tests**: Optionally test with real OTP services if you have test credentials.
+### Running Tests Locally
 
----
+1. Install dependencies & dev tools (like Orchestra Testbench):
+   ```bash
+   composer install
+   ```
+2. Run tests:
+   ```bash
+   composer test
+   ```
+   or
+   ```bash
+   vendor/bin/phpunit
+   ```
+3. Generate coverage:
+   ```bash
+   composer test-coverage
+   ```
+   This outputs an HTML coverage report in a `coverage` folder.
 
 ## Contributing
 
-Contributions, bug reports, and feature requests are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/your-github-handle/laravel-passport-multi-auth) if you find something you’d like to improve or extend.
-
----
+- Feel free to open issues or submit pull requests on [GitHub](https://github.com/kwidoo/passport-multi-auth).
+- All contributions are welcome and appreciated.
 
 ## License
 
-This package is open-source software licensed under the [MIT license](LICENSE). Feel free to modify and adapt to your needs.
+[MIT](LICENSE)
 
 ---
 
-Happy coding! If you run into any issues or have questions, please open a [GitHub Issue](https://github.com/your-github-handle/laravel-passport-multi-auth/issues).
+**That’s it!** With the updated README and example tests, you should have a clearer path to install, configure, and verify functionality for the Laravel Passport Multi-Auth package. If you need any additional help, let us know. Happy coding!
