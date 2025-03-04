@@ -1,3 +1,8 @@
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/kwidoo/passport-multiauth.svg?style=flat-square)](https://packagist.org/packages/kwidoo/passport-multiauth)
+[![Total Downloads](https://img.shields.io/packagist/dt/kwidoo/passport-multiauth.svg?style=flat-square)](https://packagist.org/packages/kwidoo/passport-multiauth)
+![GitHub Actions](https://github.com/kwidoo/passport-multiauth/actions/workflows/main.yml/badge.svg)
+
+
 # Laravel Passport Multi-Auth
 
 A Laravel package that **extends Laravel Passport’s** password grant to support multiple authentication methods (e.g., SMS/Email OTP). You can define custom OTP strategies and user resolvers in a single config file, making your OTP flows more flexible and secure.

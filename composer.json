@@ -16,13 +16,13 @@
         }
     ],
     "require": {
-        "php": "^8.0",
-        "laravel/passport": "^12.0"
+        "php": "^8.2",
+        "laravel/passport": "^12.0",
+        "kwidoo/sms-verification": "^1.2"
     },
     "require-dev": {
         "orchestra/testbench": "^10.0",
-        "phpunit/phpunit": "^11.0.1",
-        "twilio/sdk": "^8.3"
+        "phpunit/phpunit": "^11.0.1"
     },
     "autoload": {
         "psr-4": {
@@ -49,6 +49,6 @@
         }
     },
     "suggest": {
-        "twilio/sdk": "Required for Twilio SMS OTP (^6.0)"
+        "twilio/sdk": "Required for Twilio SMS OTP (^8.0)"
     }
 }
