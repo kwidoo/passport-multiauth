@@ -11,7 +11,7 @@ return [
     ],
     'strategies' => [
         'twilio' => [
-            'class'     => \Kwidoo\MultiAuth\Services\TwilioService::class,
+            'class'     => \Kwidoo\SmsVerification\Verifiers\TwilioVerifier::class,
             'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
             'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
 
