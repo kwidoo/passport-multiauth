@@ -10,8 +10,8 @@ return [
         'ttl'    => 5,
     ],
     'strategies' => [
-        'twilio' => [
-            'class'     => \Kwidoo\SmsVerification\Verifiers\TwilioVerifier::class,
+        'phone' => [
+            'class'     => \Kwidoo\SmsVerification\Contracts\VerifierInterface::class,  // Bind the interface with VerificationFactory
             'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
             'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
 
@@ -22,11 +22,5 @@ return [
             'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
 
         ],
-
-        // 'telegram' => [
-        //     'class'     => \Kwidoo\MultiAuth\Services\TelegramService::class,
-        //     'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
-        //     'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
-        // ],
     ],
 ];

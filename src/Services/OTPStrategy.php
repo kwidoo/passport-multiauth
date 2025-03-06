@@ -4,10 +4,11 @@ namespace Kwidoo\MultiAuth\Services;
 
 use Kwidoo\MultiAuth\Contracts\AuthStrategy;
 use Kwidoo\MultiAuth\Contracts\OTPServiceInterface;
+use Kwidoo\SmsVerification\Contracts\VerifierInterface;
 
 class OTPStrategy implements AuthStrategy
 {
-    public function __construct(protected OTPServiceInterface $validator) {}
+    public function __construct(protected OTPServiceInterface|VerifierInterface $validator) {}
 
     /**
      * @param array $credentials

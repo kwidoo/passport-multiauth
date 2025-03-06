@@ -7,10 +7,8 @@ use Laravel\Passport\Passport;
 use League\OAuth2\Server\AuthorizationServer;
 use Kwidoo\MultiAuth\Grants\MultiAuthGrant;
 use Kwidoo\MultiAuth\Http\Controllers\OTPController;
-use Kwidoo\MultiAuth\Services\TwilioService;
 use Laravel\Passport\Bridge\UserRepository;
 use Laravel\Passport\Bridge\RefreshTokenRepository;
-use Twilio\Rest\Client;
 use League\OAuth2\Server\Repositories\RefreshTokenRepositoryInterface;
 use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 
@@ -21,19 +19,19 @@ class MultiAuthServiceProvider extends ServiceProvider
         $this->publish();
         $this->loadApplicationComponents();
         $this->registerAuthComponents();
-        $this->bindExternalServices();
+        // $this->bindExternalServices();
     }
 
     public function register()
     {
-        $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'passport-multiauth');
+        $this->mergeConfigFrom(__DIR__ . '/../config/passport-multiauth.php', 'passport-multiauth');
     }
 
     protected function publish(): void
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/config.php' => config_path('passport-multiauth.php'),
+                __DIR__ . '/../config/passport-multiauth.php' => config_path('passport-multiauth.php'),
             ], 'config');
 
             $this->publishes([
@@ -84,10 +82,8 @@ class MultiAuthServiceProvider extends ServiceProvider
 
     protected function registerAuthorizationGrant(): void
     {
-
         $this->app->resolving(AuthorizationServer::class, function (AuthorizationServer $server, $app) {
             $resolvers = $this->resolveStrategyImplementations('resolver');
-
             $server->enableGrantType(
                 $app->make(MultiAuthGrant::class, [
                     'resolvers' => $resolvers
@@ -116,20 +112,8 @@ class MultiAuthServiceProvider extends ServiceProvider
             }
         }
 
+
+
         return $implementations;
-    }
-
-    protected function bindExternalServices(): void
-    {
-        $this->app->bind(Client::class, function () {
-            return new Client(
-                config('twilio.sid'),
-                config('twilio.auth_token')
-            );
-        });
-
-        $this->app->bind(TwilioService::class, function ($app) {
-            return new TwilioService($app->make(Client::class));
-        });
     }
 }

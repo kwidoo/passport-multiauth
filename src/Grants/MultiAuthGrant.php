@@ -2,7 +2,7 @@
 
 namespace Kwidoo\MultiAuth\Grants;
 
-use App\Contracts\UserResolver;
+use Kwidoo\MultiAuth\Contracts\UserResolver;
 use Kwidoo\MultiAuth\AuthMethodHandler;
 use Laravel\Passport\Bridge\User;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
@@ -62,7 +62,8 @@ class MultiAuthGrant extends PasswordGrant
 
         return $this->resolvers[$authMethod]->resolve(
             $credentials[0],
-            $clientEntity
+            $clientEntity,
+            $authMethod
         );
     }
 }

@@ -7,5 +7,5 @@ use League\OAuth2\Server\Entities\ClientEntityInterface;
 
 interface UserResolver
 {
-    public function resolve(string $username, ?ClientEntityInterface $clientEntity = null): ?User;
+    public function resolve(string $username, ?ClientEntityInterface $clientEntity = null, string $authMethod = 'password'): ?User;
 }

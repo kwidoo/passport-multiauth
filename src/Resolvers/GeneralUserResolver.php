@@ -14,7 +14,7 @@ class GeneralUserResolver implements UserResolverContract
      *
      * @return Authenticatable|null
      */
-    public function resolve(string $username, ?ClientEntityInterface $clientEntity = null): ?User
+    public function resolve(string $username, ?ClientEntityInterface $clientEntity = null, string $authMethod = 'password'): ?User
     {
         $provider = $clientEntity?->provider ?: config('auth.guards.api.provider');
         $model = config('auth.providers.' . $provider . '.model');

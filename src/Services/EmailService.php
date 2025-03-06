@@ -3,11 +3,11 @@
 namespace Kwidoo\MultiAuth\Services;
 
 use Illuminate\Support\Facades\Notification;
-use Kwidoo\MultiAuth\Contracts\OTPServiceInterface;
 use Kwidoo\MultiAuth\Notifications\OTPNotification;
+use Kwidoo\SmsVerification\Contracts\VerifierInterface;
 use League\OAuth2\Server\Exception\OAuthServerException;
 
-class EmailService implements OTPServiceInterface
+class EmailService implements VerifierInterface
 {
     /**
      * @var string
