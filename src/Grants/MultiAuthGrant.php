@@ -47,6 +47,7 @@ class MultiAuthGrant extends PasswordGrant
             return parent::validateUser($request, $clientEntity);
         }
 
+        // Extended grant with OTP verification
         $provider = $clientEntity->provider ?: config('auth.guards.api.provider');
         $model = config('auth.providers.' . $provider . '.model');
 
@@ -54,7 +55,10 @@ class MultiAuthGrant extends PasswordGrant
             throw new RuntimeException('Unable to determine authentication model from configuration.');
         }
 
-        $credentials = [$this->getRequestParameter('username', $request), $this->getRequestParameter('password', $request)];
+        $credentials = [
+            $this->getRequestParameter('username', $request),
+            $this->getRequestParameter('password', $request)
+        ];
 
         if (!$this->authHandler->validate($authMethod, $credentials)) {
             throw OAuthServerException::invalidCredentials();

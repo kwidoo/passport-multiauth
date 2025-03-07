@@ -5,20 +5,11 @@ namespace Kwidoo\MultiAuth\Services;
 use Illuminate\Support\Facades\Notification;
 use Kwidoo\MultiAuth\Notifications\OTPNotification;
 use Kwidoo\SmsVerification\Contracts\VerifierInterface;
+use Kwidoo\SmsVerification\Exceptions\VerifierException;
 use League\OAuth2\Server\Exception\OAuthServerException;
 
-class EmailService implements VerifierInterface
+class EmailVerifier implements VerifierInterface
 {
-    /**
-     * @var string
-     */
-    protected string $model;
-
-    public function __construct()
-    {
-        $this->model = config('passport-multiauth.otp.model');
-    }
-
     /**
      * @param string $username Email for OTP verification
      *
@@ -26,15 +17,11 @@ class EmailService implements VerifierInterface
      */
     public function create(string $username): void
     {
-        $otp = ($this->model)::create([
-            'code' => $this->generateOTP(config('passport-multiauth.otp.length')),
-            'username' => $username,
-            'method' => 'email',
-            'expires_at' => now()->addMinutes(config('passport-multiauth.otp.ttl')),
-        ]);
+        $code = $this->generateOTP(config('passport-multiauth.otp.length'));
+        cache()->put("emailotp$username", $code, config('passport-multiauth.otp.ttl'));
 
         Notification::route('mail', $username)
-            ->notify(new OTPNotification($otp->code));
+            ->notify(new OTPNotification($code));
     }
 
     /**
@@ -44,17 +31,16 @@ class EmailService implements VerifierInterface
      */
     public function validate(array $credentials): bool
     {
-        $otp = ($this->model)::where('username', $credentials[0])
-            ->where('code', $credentials[1])
-            ->where('expires_at', '>=', now())
-            ->whereNull('verified_at')
-            ->first();
+        if (count($credentials) < 2) {
+            throw new VerifierException('Credentials array must include [phoneNumber, code].');
+        }
 
-        if (!$otp) {
+        [$username, $verificationCode] = $credentials;
+        $code = cache()->pull("emailotp$username");
+        if (!$code || $code !== $verificationCode) {
             throw OAuthServerException::invalidCredentials();
         }
 
-        $otp->update(['verified_at' => now()]);
 
         return true;
     }
@@ -63,6 +49,7 @@ class EmailService implements VerifierInterface
      * @param int $length
      *
      * @return string
+     * @todo change to something more reliable
      */
     protected function generateOTP(int $length = 6): string
     {

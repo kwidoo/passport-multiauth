@@ -7,10 +7,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Kwidoo\MultiAuth\Models\OTP;
 use Kwidoo\MultiAuth\Notifications\OTPNotification;
-use Kwidoo\MultiAuth\Services\EmailService;
+use Kwidoo\MultiAuth\Services\EmailVerifier;
 use Kwidoo\MultiAuth\Tests\TestCase;
 
-class EmailServiceTest extends TestCase
+class EmailVerifierTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -26,12 +26,12 @@ class EmailServiceTest extends TestCase
     {
         Notification::fake();
 
-        $emailService = new EmailService();
+        $EmailVerifier = new EmailVerifier();
         $email = 'test@example.com';
 
         // This call should internally do something like:
         // Notification::route('mail', $email)->notify(new OTPNotification($code));
-        $emailService->create($email);
+        $EmailVerifier->create($email);
 
         // Now assert
         Notification::assertSentTo(
@@ -50,15 +50,10 @@ class EmailServiceTest extends TestCase
     public function testValidateSuccessful()
     {
         // Create a dummy OTP record
-        $otpRecord = OTP::create([
-            'code'       => '123456',
-            'username'   => 'test@example.com',
-            'method'     => 'email',
-            'expires_at' => Carbon::now()->addMinutes(5),
-        ]);
+        cache()->put('emailotptest@example.com', 123456, 5);
 
-        $emailService = new EmailService();
-        $result = $emailService->validate(['test@example.com', '123456']);
+        $EmailVerifier = new EmailVerifier();
+        $result = $EmailVerifier->validate(['test@example.com', '123456']);
 
         $this->assertTrue($result);
         $this->assertNotNull($otpRecord->fresh()->verified_at);
@@ -68,7 +63,7 @@ class EmailServiceTest extends TestCase
     {
         $this->expectException(\League\OAuth2\Server\Exception\OAuthServerException::class);
 
-        $emailService = new EmailService();
-        $emailService->validate(['test@example.com', 'wrong-code']);
+        $EmailVerifier = new EmailVerifier();
+        $EmailVerifier->validate(['test@example.com', 'wrong-code']);
     }
 }

@@ -79,7 +79,7 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
      "username": "user@example.com"
    }
    ```
-   This triggers the corresponding service (e.g., `TwilioService` or `EmailService`) to generate/send OTP.
+   This triggers the corresponding service (e.g., `TwilioService` or `EmailVerifier`) to generate/send OTP.
 
 2. **Obtain Access Token**
    After receiving the OTP, call the standard Passport token endpoint (often `POST /oauth/token`) with parameters:
@@ -107,7 +107,7 @@ A Laravel package that **extends Laravel Passport’s** password grant to suppor
            'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
        ],
        'email' => [
-           'class'    => \Kwidoo\MultiAuth\Services\EmailService::class,
+           'class'    => \Kwidoo\MultiAuth\Services\EmailVerifier::class,
            'strategy' => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
            'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
        ],

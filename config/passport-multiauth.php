@@ -5,9 +5,8 @@
  */
 return [
     'otp' => [
-        'model'  => \Kwidoo\MultiAuth\Models\OTP::class,
         'length' => 6,
-        'ttl'    => 5,
+        'ttl'    => 300,  // seconds
     ],
     'strategies' => [
         'phone' => [
@@ -17,7 +16,7 @@ return [
 
         ],
         'email' => [
-            'class'     => \Kwidoo\MultiAuth\Services\EmailService::class,
+            'class'     => \Kwidoo\MultiAuth\Services\EmailVerifier::class,
             'strategy'  => \Kwidoo\MultiAuth\Services\OTPStrategy::class,
             'resolver' => \Kwidoo\MultiAuth\Resolvers\GeneralUserResolver::class,
 
