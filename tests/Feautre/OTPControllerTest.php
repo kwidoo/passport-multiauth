@@ -31,7 +31,7 @@ class OTPControllerTest extends TestCase
 
     public function testCreateOtpEndpointFailsWithoutMethod()
     {
-        $response = $this->postJson('/oauth/otp', [
+        $response = $this->postJson('/oauth/otp', [ 
             'username' => 'user@example.com',
         ]);
 
