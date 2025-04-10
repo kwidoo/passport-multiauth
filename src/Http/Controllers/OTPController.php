@@ -4,13 +4,13 @@ namespace Kwidoo\MultiAuth\Http\Controllers;
 
 use Exception;
 use Illuminate\Http\Request;
+use Kwidoo\MultiAuth\Contracts\UserResolver;
 
 class OTPController
 {
     /**
-     * @param OTPServiceInterface[] $otpGenerators
      */
-    public function __construct(protected array $otpGenerators) {}
+    public function __construct(protected array $otpGenerators, protected UserResolver $resolver) {}
 
     public function create(Request $request)
     {
@@ -26,9 +26,16 @@ class OTPController
         $generator = $this->otpGenerators[$request->method];
 
         try {
-            $generator->create($request->username);
+            $result = $generator->create($request->username);
 
-            return $request->expectsJson() ? response()->json(['message' => 'OTP was sent successfully']) : view('passport-multiauth::otp.sent');
+            // If OTP was not sent (user has a password)
+            if ($result === false) {
+                return response()->json(['message' => 'OTP not sent, user has a password set'], 200);
+            }
+
+            return $request->expectsJson()
+                ? response()->json(['message' => 'OTP was sent successfully'])
+                : view('passport-multiauth::otp.sent');
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }

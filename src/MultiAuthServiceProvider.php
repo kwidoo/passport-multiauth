@@ -3,6 +3,12 @@
 namespace Kwidoo\MultiAuth;
 
 use Illuminate\Support\ServiceProvider;
+use Kwidoo\MultiAuth\Contracts\OTPGeneratorInterface;
+use Kwidoo\MultiAuth\Contracts\PasswordCheckerInterface;
+use Kwidoo\MultiAuth\Factories\UserResolverFactory;
+use Kwidoo\MultiAuth\Services\DefaultPasswordChecker;
+use Kwidoo\MultiAuth\Services\OTPGenerator;
+use Kwidoo\MultiAuth\Services\PasswordAwareOTPDecorator;
 use Laravel\Passport\Passport;
 use League\OAuth2\Server\AuthorizationServer;
 use Kwidoo\MultiAuth\Grants\MultiAuthGrant;
@@ -16,6 +22,7 @@ class MultiAuthServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+        $this->validateConfig();
         $this->publish();
         $this->loadApplicationComponents();
         $this->registerAuthComponents();
@@ -25,6 +32,11 @@ class MultiAuthServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/passport-multiauth.php', 'passport-multiauth');
+
+        // Register core services
+        $this->app->bind(OTPGeneratorInterface::class, OTPGenerator::class);
+        $this->app->bind(PasswordCheckerInterface::class, DefaultPasswordChecker::class);
+        $this->app->bind(UserResolverFactory::class);
     }
 
     protected function publish(): void
@@ -97,7 +109,14 @@ class MultiAuthServiceProvider extends ServiceProvider
     {
         $this->app->bind(OTPController::class, function () {
             $services = $this->resolveStrategyImplementations('class');
-            return new OTPController($services);
+            $passwordChecker = $this->app->make(PasswordCheckerInterface::class);
+
+            // Wrap each OTP service with the password check decorator
+            foreach ($services as $method => $service) {
+                $services[$method] = new PasswordAwareOTPDecorator($service, $passwordChecker);
+            }
+
+            return new OTPController($services, $this->app->make(config('passport-multiauth.strategies.email.resolver')));
         });
     }
 
@@ -112,8 +131,21 @@ class MultiAuthServiceProvider extends ServiceProvider
             }
         }
 
-
-
         return $implementations;
+    }
+
+    protected function validateConfig(): void
+    {
+        $strategies = config('passport-multiauth.strategies', []);
+
+        if (empty($strategies)) {
+            throw new \RuntimeException('No authentication strategies configured for passport-multiauth');
+        }
+
+        foreach ($strategies as $method => $entry) {
+            if (!isset($entry['class']) || !isset($entry['strategy'])) {
+                throw new \RuntimeException("Invalid strategy configuration for method '{$method}'");
+            }
+        }
     }
 }
