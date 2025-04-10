@@ -4,6 +4,7 @@ namespace Kwidoo\MultiAuth\Services;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Notifications\ChannelManager;
+use Illuminate\Support\Facades\Notification;
 use Kwidoo\MultiAuth\Contracts\OTPGeneratorInterface;
 use Kwidoo\MultiAuth\Notifications\OTPNotification;
 
@@ -31,7 +32,7 @@ class EmailVerifier extends AbstractOTPVerifier
      */
     protected function sendOTP(string $username, string $code): void
     {
-        $this->notifications->route('mail', $username)
+        Notification::route('mail', $username)
             ->notify(new OTPNotification($code));
     }
 
