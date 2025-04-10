@@ -2,68 +2,119 @@
 
 namespace Kwidoo\MultiAuth\Tests\Unit;
 
-use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Notifications\ChannelManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
-use Kwidoo\MultiAuth\Models\OTP;
+use Kwidoo\MultiAuth\Contracts\OTPGeneratorInterface;
 use Kwidoo\MultiAuth\Notifications\OTPNotification;
 use Kwidoo\MultiAuth\Services\EmailVerifier;
 use Kwidoo\MultiAuth\Tests\TestCase;
+use Mockery;
 
-class EmailVerifierTest extends TestCase
+class EmailServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    protected $cacheRepository;
+    protected $channelManager;
+    protected $otpGenerator;
+    protected $emailVerifier;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Migrate the OTP table
-        $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
+        // Mock dependencies
+        $this->cacheRepository = Mockery::mock(Repository::class);
+        $this->channelManager = Mockery::mock(ChannelManager::class);
+        $this->otpGenerator = Mockery::mock(OTPGeneratorInterface::class);
+
+        // Create service with mocked dependencies
+        $this->emailVerifier = new EmailVerifier(
+            $this->cacheRepository,
+            $this->channelManager,
+            $this->otpGenerator
+        );
+
+        // Clear cache between tests
+        Cache::flush();
+
+        // Fake notifications
+        Notification::fake();
     }
 
     public function testCreateSendsEmailOTP()
     {
-        Notification::fake();
-
-        $EmailVerifier = new EmailVerifier();
         $email = 'test@example.com';
+        $code = '123456';
 
-        // This call should internally do something like:
-        // Notification::route('mail', $email)->notify(new OTPNotification($code));
-        $EmailVerifier->create($email);
+        // Setup expectations
+        $this->otpGenerator->shouldReceive('generate')
+            ->once()
+            ->with(6)
+            ->andReturn($code);
 
-        // Now assert
+        $this->cacheRepository->shouldReceive('put')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email, $code, 300)
+            ->andReturnTrue();
+
+        // Call the method
+        $this->emailVerifier->create($email);
+
+        // Assert notification was sent
         Notification::assertSentTo(
             Notification::route('mail', $email),
-            function (OTPNotification $notification, $channels) {
-                return $notification instanceof OTPNotification; // Or however you handle the code
+            OTPNotification::class,
+            function (OTPNotification $notification) use ($code) {
+                return $notification->code === $code;
             }
         );
-
-        $this->assertDatabaseHas('otps', [
-            'username' => $email,
-            'method'   => 'email'
-        ]);
     }
 
     public function testValidateSuccessful()
     {
-        // Create a dummy OTP record
-        cache()->put('emailotptest@example.com', 123456, 5);
+        $email = 'test@example.com';
+        $code = '123456';
 
-        $EmailVerifier = new EmailVerifier();
-        $result = $EmailVerifier->validate(['test@example.com', '123456']);
+        // Setup expectations
+        $this->cacheRepository->shouldReceive('has')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email)
+            ->andReturnTrue();
+
+        $this->cacheRepository->shouldReceive('get')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email)
+            ->andReturn($code);
+
+        $this->cacheRepository->shouldReceive('forget')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email)
+            ->andReturnTrue();
+
+        $result = $this->emailVerifier->validate([$email, $code]);
 
         $this->assertTrue($result);
-        $this->assertNotNull($otpRecord->fresh()->verified_at);
     }
 
     public function testValidateFailsIfInvalidCode()
     {
+        $email = 'test@example.com';
+        $validCode = '123456';
+        $wrongCode = 'wrong-code';
+
+        $this->cacheRepository->shouldReceive('has')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email)
+            ->andReturnTrue();
+
+        $this->cacheRepository->shouldReceive('get')
+            ->once()
+            ->with('passport_multiauth_email_otp_' . $email)
+            ->andReturn($validCode);
+
         $this->expectException(\League\OAuth2\Server\Exception\OAuthServerException::class);
 
-        $EmailVerifier = new EmailVerifier();
-        $EmailVerifier->validate(['test@example.com', 'wrong-code']);
+        $this->emailVerifier->validate([$email, $wrongCode]);
     }
 }
